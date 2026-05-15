@@ -111,8 +111,8 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
         $test_mode = $this->get_option('testmode');
         if ($test_mode === 'yes') {
             ?>
-            <div class="culqi-test-cards" style="margin-top:15px; padding:15px; background:#fff3cd; border:1px solid #ffe69c; border-radius:5px;">
-                <label style="display:block; margin-bottom:5px; font-weight:600; color: #856404; font-size: 13px;">🧪 Tarjetas de Prueba (Solo entorno Test)</label>
+            <div class="culqi-test-card-box">
+                <label>🧪 Tarjetas de Prueba (Solo entorno Test)</label>
                 <select id="culqi-test-cards-select" style="width:100%; border-radius:4px; border:1px solid #ffe69c; background:#fff; font-size:13px;">
                     <option value="">-- Selecciona una tarjeta de prueba --</option>
                     <optgroup label="Flujo 3DS (Autenticación)">
@@ -155,30 +155,52 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
             <?php
         }
 
-        echo '<fieldset id="wc-' . esc_attr($this->id) . '-cc-form" class="wc-credit-card-form wc-payment-form" style="background:transparent; margin-top: 15px;">';
+        echo '<fieldset id="wc-' . esc_attr($this->id) . '-cc-form" class="wc-credit-card-form wc-payment-form culqi-fieldset">';
         
         do_action('woocommerce_credit_card_form_start', $this->id);
         ?>
-            <div class="form-row form-row-wide" style="margin-bottom:15px;">
-                <label style="display:block; margin-bottom:5px; font-weight:600; color: #444;">Número de tarjeta <span class="required">*</span></label>
-                <input type="text" name="culqi_card_number" id="culqi-card-number" class="input-text" autocomplete="cc-number" autocorrect="no" autocapitalize="no" spellcheck="no" type="tel" placeholder="•••• •••• •••• ••••" style="height: 45px; border-radius: 5px; width: 100%;">
+            <div class="form-row form-row-wide culqi-field-group">
+                <label class="culqi-field-label">Número de tarjeta <span class="required">*</span></label>
+                <input type="text" name="culqi_card_number" id="culqi-card-number" class="input-text culqi-field-input" autocomplete="cc-number" autocorrect="no" autocapitalize="no" spellcheck="no" inputmode="numeric" placeholder="•••• •••• •••• ••••">
             </div>
             
-            <div style="display:flex; gap:15px;">
-                <div class="form-row form-row-first" style="flex:1;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color: #444;">Vencimiento <span class="required">*</span></label>
-                    <input type="text" name="culqi_card_expiry" id="culqi-card-expiry" class="input-text" autocomplete="cc-exp" autocorrect="no" autocapitalize="no" spellcheck="no" type="tel" placeholder="MM/YY" style="height: 45px; border-radius: 5px; width: 100%;">
+            <div class="culqi-field-row">
+                <div class="form-row form-row-first culqi-field-col">
+                    <label class="culqi-field-label">Vencimiento <span class="required">*</span></label>
+                    <input type="text" name="culqi_card_expiry" id="culqi-card-expiry" class="input-text culqi-field-input" autocomplete="cc-exp" autocorrect="no" autocapitalize="no" spellcheck="no" inputmode="numeric" placeholder="MM/YY">
                 </div>
                 
-                <div class="form-row form-row-last" style="flex:1;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color: #444;">CVV <span class="required">*</span></label>
-                    <input type="password" name="culqi_card_cvv" id="culqi-card-cvv" class="input-text" autocomplete="cc-csc" autocorrect="no" autocapitalize="no" spellcheck="no" type="tel" placeholder="CVV" style="height: 45px; border-radius: 5px; width: 100%;" maxlength="4">
+                <div class="form-row form-row-last culqi-field-col">
+                    <label class="culqi-field-label">CVV <span class="required">*</span></label>
+                    <div class="culqi-cvv-wrapper">
+                        <input type="password" name="culqi_card_cvv" id="culqi-card-cvv" class="input-text culqi-field-input" autocomplete="cc-csc" autocorrect="no" autocapitalize="no" spellcheck="no" inputmode="numeric" placeholder="CVV" maxlength="4">
+                        <span id="toggle-cvv" class="culqi-cvv-toggle" onclick="culqiToggleCvv(this)">
+                            <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </span>
+                    </div>
+                    <script>
+                        function culqiToggleCvv(el) {
+                            var inp = document.getElementById('culqi-card-cvv');
+                            var eyeOpen = el.querySelector('#eye-open');
+                            var eyeClosed = el.querySelector('#eye-closed');
+                            if (inp.type === 'password') {
+                                inp.type = 'text';
+                                eyeOpen.style.display = 'none';
+                                eyeClosed.style.display = 'block';
+                            } else {
+                                inp.type = 'password';
+                                eyeOpen.style.display = 'block';
+                                eyeClosed.style.display = 'none';
+                            }
+                        }
+                    </script>
                 </div>
             </div>
             
-            <div class="form-row form-row-wide" style="margin-top:15px;">
-                <label style="display:block; margin-bottom:5px; font-weight:600; color: #444;">Correo electrónico <span class="required">*</span></label>
-                <input type="email" name="culqi_card_email" id="culqi-card-email" class="input-text" placeholder="tucorreo@ejemplo.com" style="height: 45px; border-radius: 5px; width: 100%;">
+            <div class="form-row form-row-wide culqi-field-email">
+                <label class="culqi-field-label">Correo electrónico <span class="required">*</span></label>
+                <input type="email" name="culqi_card_email" id="culqi-card-email" class="input-text culqi-field-input" placeholder="tucorreo@ejemplo.com">
             </div>
             <div class="clear"></div>
 
@@ -194,18 +216,44 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
                     'diners': 'url("<?php echo esc_js(plugin_dir_url(dirname(__FILE__)) . "assets/images/dinersclub.svg"); ?>")'
                 };
 
+
+
                 $(document).off('input', '#culqi-card-number').on('input', '#culqi-card-number', function() {
                     let val = $(this).val().replace(/\D/g, '');
-                    let formatted = val.match(/.{1,4}/g);
-                    if (formatted) {
-                        $(this).val(formatted.join(' '));
-                    }
-                    let bgImage = 'none';
-                    if (val.match(/^4/)) bgImage = cardLogos['visa'];
-                    else if (val.match(/^(5[1-5]|2[2-7])/)) bgImage = cardLogos['mastercard'];
-                    else if (val.match(/^3[47]/)) bgImage = cardLogos['amex'];
-                    else if (val.match(/^3(?:0[0-5]|[68])/)) bgImage = cardLogos['diners'];
+                    let formatted = '';
 
+                    if (val.match(/^3[47]/)) {
+                        // Amex: 4-6-5
+                        formatted = val.substring(0, 4);
+                        if (val.length > 4) formatted += ' ' + val.substring(4, 10);
+                        if (val.length > 10) formatted += ' ' + val.substring(10, 15);
+                    } else if (val.match(/^3(?:0[0-5]|[68])/)) {
+                        // Diners: 4-6-4
+                        formatted = val.substring(0, 4);
+                        if (val.length > 4) formatted += ' ' + val.substring(4, 10);
+                        if (val.length > 10) formatted += ' ' + val.substring(10, 14);
+                    } else {
+                        // Default (Visa/MC): 4-4-4-4
+                        let parts = val.match(/.{1,4}/g);
+                        if (parts) formatted = parts.join(' ');
+                    }
+                    $(this).val(formatted);
+                    let bgImage = 'none';
+                    let maxLength = 19; // Default 16 digits + 3 spaces
+
+                    if (val.match(/^4/)) {
+                        bgImage = cardLogos['visa'];
+                    } else if (val.match(/^(5[1-5]|2[2-7])/)) {
+                        bgImage = cardLogos['mastercard'];
+                    } else if (val.match(/^3[47]/)) {
+                        bgImage = cardLogos['amex'];
+                        maxLength = 17; // 15 digits + 2 spaces
+                    } else if (val.match(/^3(?:0[0-5]|[68])/)) {
+                        bgImage = cardLogos['diners'];
+                        maxLength = 16; // 14 digits + 2 spaces
+                    }
+
+                    $(this).attr('maxlength', maxLength);
                     $(this).css({
                         'background-image': bgImage,
                         'background-repeat': 'no-repeat',
@@ -406,30 +454,7 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
 					return this.nodeType === 3;
 				}).first().remove();
 			</script>
-			<style>
-				.wc-culqi-container {
-					width: 100%;
-					display: flex;
-					align-items: center;
-					justify-content: space-between;
-				}
-				.wc-culqi-icon {
-    				margin-left: 8px !important;
-					height: 1.3em !important;
-				}
-				.wc-culqi-title {
-					float: none !important;
-					display: inline-block;
-					margin-left: 0 !important;
-                    height: 25px;
-				}
-                li.payment_method_culqi_v4 label {
-                    width: 100%;
-                    display: flex !important;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-			</style>
+
             <div class="wc-culqi-container">
 			    <img class="wc-culqi-title" src="<?php echo esc_url( $this->culqi_logo ); ?>" alt="Culqi" />
                 <img class="wc-culqi-icon" src="<?php echo esc_url( PLUGIN_CULQI_URL . 'assets/images/cards.svg' ); ?>" alt="Cards" />

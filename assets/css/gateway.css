@@ -1,3 +1,13 @@
+/* ============================================================
+   Culqi Payment Gateway — Estilos del Checkout
+   Autor: soyprogramador.pe
+   Nota: Todos los selectores usan #culqi-gateway como raíz
+         para garantizar especificidad sobre themes y WooCommerce.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. MODAL 3DS / LOADER
+   ---------------------------------------------------------- */
 #order-created-modal {
     position: fixed;
     top: 0;
@@ -43,4 +53,195 @@
 
 .flex {
     display: flex !important;
+}
+
+/* ----------------------------------------------------------
+   2. CONTENEDORES DE MÉTODOS DE PAGO (shared)
+   ---------------------------------------------------------- */
+#culqi-gateway li.wc_payment_method {
+    position: relative;
+}
+
+#culqi-gateway li.wc_payment_method input[type="radio"] {
+    margin: 0 !important;
+    position: absolute;
+    top: 15px;
+    left: 10px;
+}
+
+#culqi-gateway li.wc_payment_method .form-row {
+    margin: 0 !important;
+}
+
+/* ----------------------------------------------------------
+   3. TARJETAS — Header (get_icon)
+   ---------------------------------------------------------- */
+#culqi-gateway li.payment_method_culqi_v4 {
+    padding-bottom: 15px;
+}
+
+#culqi-gateway li.payment_method_culqi_v4 label[for="payment_method_culqi_v4"] {
+    width: 100%;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 35px !important;
+}
+
+#culqi-gateway .wc-culqi-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#culqi-gateway .wc-culqi-title {
+    float: none !important;
+    display: inline-block;
+    margin-left: 0 !important;
+    height: 25px;
+}
+
+#culqi-gateway .wc-culqi-icon {
+    margin-left: 8px !important;
+    height: 1.3em !important;
+}
+
+/* ----------------------------------------------------------
+   4. TARJETAS — Formulario (payment_fields)
+   ---------------------------------------------------------- */
+#culqi-gateway .culqi-fieldset {
+    background: transparent;
+    margin-top: 15px;
+}
+
+#culqi-gateway .culqi-field-group {
+    margin-bottom: 15px;
+}
+
+#culqi-gateway .culqi-field-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #444;
+}
+
+#culqi-gateway .culqi-field-input {
+    height: 45px;
+    border-radius: 5px;
+    width: 100%;
+    padding: 5px 10px 5px !important;
+}
+
+#culqi-gateway .culqi-field-row {
+    display: flex;
+    gap: 15px;
+}
+
+#culqi-gateway .culqi-field-col {
+    flex: 1;
+}
+
+/* CVV con toggle eye */
+#culqi-gateway .culqi-cvv-wrapper {
+    position: relative;
+}
+
+#culqi-gateway .culqi-cvv-wrapper .culqi-field-input {
+    padding-right: 40px;
+}
+
+#culqi-gateway .culqi-cvv-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    z-index: 10;
+    user-select: none;
+}
+
+#culqi-gateway .culqi-field-email {
+    margin-top: 15px;
+}
+
+/* Tarjetas de prueba (sandbox) */
+#culqi-gateway .culqi-test-card-box {
+    background: #fff8e1;
+    border: 2px dashed #f9a825;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+#culqi-gateway .culqi-test-card-box label {
+    display: block;
+    font-weight: 700;
+    color: #6d4c00;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+#culqi-gateway .culqi-test-card-box select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #f9a825;
+}
+
+/* ----------------------------------------------------------
+   5. YAPE — Header (get_icon)
+   ---------------------------------------------------------- */
+#culqi-gateway li.payment_method_culqi_yape {
+    padding-bottom: 15px;
+}
+
+#culqi-gateway li.payment_method_culqi_yape label[for="payment_method_culqi_yape"] {
+    width: 100%;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 35px !important;
+}
+
+#culqi-gateway .wc-culqi-yape-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#culqi-gateway .wc-culqi-yape-title {
+    float: none !important;
+    display: inline-block;
+    margin-left: 0 !important;
+    font-weight: bold;
+    font-size: 1.05em;
+    color: #444;
+}
+
+#culqi-gateway .wc-culqi-yape-icon {
+    margin-left: 8px !important;
+    height: 1.5em !important;
+}
+
+/* ----------------------------------------------------------
+   6. YAPE — Formulario (payment_fields)
+   ---------------------------------------------------------- */
+#culqi-gateway .culqi-yape-sandbox-notice {
+    background: #fff3cd;
+    color: #856404;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    border: 1px solid #ffe69c;
+}
+
+#culqi-gateway .culqi-yape-hint {
+    color: #666;
+    display: block;
+    margin-top: 5px;
 }

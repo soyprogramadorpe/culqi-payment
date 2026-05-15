@@ -9,3 +9,28 @@ function culqi_payment_enqueue_scripts() {
         // por lo que ya no es necesario inyectar JS de tokenización externo.
     }
 }
+
+/**
+ * Inyectar id="culqi-gateway" en el <ul> de métodos de pago de WooCommerce.
+ * Esto nos permite usar #culqi-gateway como raíz CSS con máxima especificidad,
+ * garantizando que nuestros estilos siempre ganen sobre themes y WooCommerce.
+ */
+add_action('wp_footer', 'culqi_inject_gateway_id');
+function culqi_inject_gateway_id() {
+    if (!is_checkout()) return;
+    ?>
+    <script>
+        (function() {
+            function applyId() {
+                var ul = document.querySelector('ul.wc_payment_methods.payment_methods');
+                if (ul && !ul.id) {
+                    ul.id = 'culqi-gateway';
+                }
+            }
+            // Aplicar inmediatamente y después de cada actualización AJAX del checkout
+            applyId();
+            jQuery(document.body).on('updated_checkout', applyId);
+        })();
+    </script>
+    <?php
+}

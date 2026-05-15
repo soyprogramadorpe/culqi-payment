@@ -50,15 +50,17 @@ function culqi_v4_gateway_init() {
         return;
     }
 
-    // Include the Culqi Payment Gateway Class
+    // Include the Culqi Payment Gateway Classes
     require_once plugin_dir_path(__FILE__) . 'includes/class-culqi-v4-gateway.php';
+    require_once plugin_dir_path(__FILE__) . 'includes/class-culqi-yape-gateway.php';
     require_once plugin_dir_path(__FILE__) . 'includes/functions/process-3ds.php';
-    // Add the gateway to WooCommerce
+    // Add the gateways to WooCommerce
     add_filter('woocommerce_payment_gateways', 'culqi_v4_add_culqi_gateway');
     
     function culqi_v4_add_culqi_gateway($methods)
     {
         $methods[] = 'WC_Gateway_Culqi_V4'; // Payment Gateway class
+        $methods[] = 'WC_Gateway_Culqi_Yape'; // Yape Gateway class
         return $methods;
     }
 }
