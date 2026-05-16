@@ -28,6 +28,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 
 require_once plugin_dir_path(__FILE__) . 'constants.php';
 require_once plugin_dir_path(__FILE__) . 'includes/functions/gateway-scripts.php';
+require_once plugin_dir_path(__FILE__) . 'includes/functions/webhook.php';
 // Activation Hook
 register_activation_hook(__FILE__, 'culqi_v4_payment_activate');
 function culqi_v4_payment_activate() {

@@ -22,8 +22,11 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
         
         $this->title = $this->get_option('title');
         $this->description = $this->get_option('description');
-        $this->public_key = $this->get_option('public_key');
-        $this->secret_key = $this->get_option('secret_key');
+        $this->testmode = $this->get_option('testmode') === 'yes';
+        $this->public_key = $this->testmode ? $this->get_option('test_public_key') : $this->get_option('live_public_key');
+        $this->secret_key = $this->testmode ? $this->get_option('test_private_key') : $this->get_option('live_private_key');
+        
+        $this->supports = array('products', 'refunds');
 
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
         add_filter('woocommerce_blocks_payment_gateway_support', array($this, 'add_blocks_support'));
@@ -41,14 +44,14 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
         $this->form_fields = array(
             'enabled' => array(
                 'title' => 'Enable/Disable',
-                'label' => 'Enable Culqi V3 Payment Gateway',
+                'label' => 'Enable Culqi Payment Gateway',
                 'type' => 'checkbox',
                 'default' => 'no',
             ),
             'title' => array(
                 'title' => 'Title',
                 'type' => 'text',
-                'default' => 'Tarjeta de Crédito/Débito (Culqi V3)',
+                'default' => 'Tarjeta de Crédito/Débito',
             ),
             'description' => array(
                 'title' => 'Description',
@@ -99,11 +102,28 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
                 'description' => 'Tu llave privada de Producción de Culqi.',
                 'default' => '',
             ),
-
+            'webhook_section' => array(
+                'title' => 'Configuración de Webhooks (Opcional)',
+                'type' => 'title',
+                'description' => 'Copia esta URL y configúrala en tu panel de Culqi (Sección Eventos / Webhooks):<br><code style="background:#eef; padding:4px 8px; font-weight:bold; display:inline-block; margin-top:5px;">' . esc_url(get_site_url() . '/wc-api/culqi_webhook') . '</code>',
+            ),
+            'webhook_user' => array(
+                'title' => 'Usuario de Autenticación',
+                'type' => 'text',
+                'description' => 'El usuario que ingresaste en "Activar autenticación" en el panel de Culqi.',
+                'default' => '',
+            ),
+            'webhook_password' => array(
+                'title' => 'Contraseña de Autenticación',
+                'type' => 'password',
+                'description' => 'La contraseña que ingresaste en "Activar autenticación" en el panel de Culqi.',
+                'default' => '',
+            ),
         );
     }
 
     public function payment_fields() {
+
         if ( $this->description ) {
             echo wpautop( wptexturize( $this->description ) );
         }
@@ -382,6 +402,9 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
                 "last_name" => $order->get_billing_last_name(),
                 "phone_number" => $order->get_billing_phone(),
                 "device_finger_print_id" => $device_id
+            ),
+            "metadata" => array(
+                "order_id" => (string) $order_id
             )
         );
 
@@ -414,6 +437,7 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
         // Caso 1: Requiere 3DS (Cod. 200 o 201 con action_code = REVIEW)
         if (isset($response_body['action_code']) && $response_body['action_code'] === 'REVIEW') {
             $order->update_meta_data('_culqi_3ds_token', $token_id);
+            $order->update_meta_data('_culqi_charge_id', $response_body['id']);
             $order->update_status('pending', __('Pendiente de autenticación 3DS.', 'culqi'));
             $order->save();
 
@@ -427,6 +451,8 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
 
         // Caso 2: Éxito Directo (Sin 3DS)
         if (isset($response_body['object']) && $response_body['object'] === 'charge') {
+            $order->update_meta_data('_culqi_charge_id', $response_body['id']);
+            $order->save();
             $order->payment_complete($response_body['id']);
             $order->add_order_note(sprintf(__('Pago exitoso con Culqi (ID: %s)', 'culqi'), $response_body['id']));
             WC()->cart->empty_cart();
@@ -442,6 +468,7 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
         if (isset($response_body['merchant_message'])) {
             $error_message .= ' (' . $response_body['merchant_message'] . ')';
         }
+        $order->update_status('failed', __('Pago rechazado: ', 'culqi') . $error_message);
         wc_add_notice($error_message, 'error');
         return;
     }
@@ -620,4 +647,78 @@ class WC_Gateway_Culqi_V4 extends WC_Payment_Gateway
         </script>
         <?php
     }
+
+    /**
+     * Procesar reembolso directamente desde el panel de WooCommerce hacia Culqi API.
+     */
+    public function process_refund($order_id, $amount = null, $reason = '')
+    {
+        $order = wc_get_order($order_id);
+        $charge_id = $order->get_transaction_id();
+
+        if (empty($charge_id)) {
+            return new WP_Error('error', __('No se encontró el ID de transacción de Culqi (charge_id) en este pedido.', 'culqi'));
+        }
+
+        if (empty($this->secret_key)) {
+            return new WP_Error('error', __('Falta la llave secreta de Culqi en la configuración.', 'culqi'));
+        }
+
+        // Razón por defecto para Culqi API
+        $culqi_reasons = array('duplicado', 'fraudulento', 'solicitud_comprador');
+        $api_reason = 'solicitud_comprador';
+        
+        if (!empty($reason)) {
+            $reason_clean = strtolower(trim($reason));
+            if (in_array($reason_clean, $culqi_reasons, true)) {
+                $api_reason = $reason_clean;
+            } elseif (strpos($reason_clean, 'duplicad') !== false) {
+                $api_reason = 'duplicado';
+            } elseif (strpos($reason_clean, 'fraud') !== false) {
+                $api_reason = 'fraudulento';
+            }
+        }
+
+        $api_url = 'https://api.culqi.com/v2/refunds';
+        $body = array(
+            'amount'    => round($amount * 100),
+            'charge_id' => $charge_id,
+            'reason'    => $api_reason,
+            'metadata'  => array(
+                'motivo_wc' => sanitize_text_field($reason),
+                'order_id'  => (string) $order_id
+            )
+        );
+
+        $headers = array(
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $this->secret_key,
+        );
+
+        $response = wp_remote_post($api_url, array(
+            'method'  => 'POST',
+            'body'    => wp_json_encode($body),
+            'timeout' => 45,
+            'headers' => $headers,
+        ));
+
+        if (is_wp_error($response)) {
+            return new WP_Error('error', __('Error de conexión con Culqi al intentar procesar el reembolso.', 'culqi'));
+        }
+
+        $response_body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (isset($response_body['object']) && $response_body['object'] === 'refund') {
+            $order->add_order_note(sprintf(__('Reembolso en Culqi procesado con éxito (ID: %s, Monto: %s, Motivo: %s)', 'culqi'), $response_body['id'], wc_price($amount), $response_body['reason']));
+            return true;
+        }
+
+        $error_message = isset($response_body['user_message']) ? $response_body['user_message'] : __('El reembolso fue rechazado por Culqi.', 'culqi');
+        if (isset($response_body['merchant_message'])) {
+            $error_message .= ' (' . $response_body['merchant_message'] . ')';
+        }
+
+        return new WP_Error('error', $error_message);
+    }
 }
+

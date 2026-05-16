@@ -29,6 +29,8 @@ class WC_Gateway_Culqi_Yape extends WC_Payment_Gateway
         $this->public_key = $this->testmode ? ($culqi_settings['test_public_key'] ?? '') : ($culqi_settings['live_public_key'] ?? '');
         $this->secret_key = $this->testmode ? ($culqi_settings['test_private_key'] ?? '') : ($culqi_settings['live_private_key'] ?? '');
 
+        $this->supports = array('products', 'refunds');
+
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
     }
 
@@ -63,6 +65,7 @@ class WC_Gateway_Culqi_Yape extends WC_Payment_Gateway
     }
 
     public function payment_fields() {
+
         if ($this->description) {
             echo wpautop(wptexturize($this->description));
         }
@@ -187,37 +190,42 @@ class WC_Gateway_Culqi_Yape extends WC_Payment_Gateway
             "currency_code" => $order->get_currency(),
             "email" => $order->get_billing_email(),
             "source_id" => $token_id,
-            "antifraud_details" => array(
-                "first_name" => $order->get_billing_first_name(),
-                "last_name" => $order->get_billing_last_name(),
-                "phone_number" => $order->get_billing_phone()
-            )
-        );
+        "antifraud_details" => array(
+            "first_name" => $order->get_billing_first_name(),
+            "last_name" => $order->get_billing_last_name(),
+            "phone_number" => $order->get_billing_phone()
+        ),
+        "metadata" => array(
+            "order_id" => (string) $order_id
+        )
+    );
 
-        $headers_charge = array(
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->secret_key,
-        );
+    $headers_charge = array(
+        'Content-Type' => 'application/json',
+        'Authorization' => 'Bearer ' . $this->secret_key,
+    );
 
-        $response = wp_remote_post($api_url, array(
-            'method'    => 'POST',
-            'body'      => wp_json_encode($body),
-            'timeout'   => 45,
-            'headers'   => $headers_charge,
-        ));
+    $response = wp_remote_post($api_url, array(
+        'method'    => 'POST',
+        'body'      => wp_json_encode($body),
+        'timeout'   => 45,
+        'headers'   => $headers_charge,
+    ));
 
-        if (is_wp_error($response)) {
-            wc_add_notice(__('Error de conexión con Culqi al procesar el cargo.', 'culqi'), 'error');
-            return;
-        }
+    if (is_wp_error($response)) {
+        wc_add_notice(__('Error de conexión con Culqi al procesar el cargo.', 'culqi'), 'error');
+        return;
+    }
 
-        $response_body = json_decode(wp_remote_retrieve_body($response), true);
+    $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
-        // Caso: Éxito Directo (Yape no usa 3DS)
-        if (isset($response_body['object']) && $response_body['object'] === 'charge') {
-            $order->payment_complete($response_body['id']);
-            $order->add_order_note(sprintf(__('Pago Yape exitoso con Culqi (ID: %s)', 'culqi'), $response_body['id']));
-            WC()->cart->empty_cart();
+    // Caso: Éxito Directo (Yape no usa 3DS)
+    if (isset($response_body['object']) && $response_body['object'] === 'charge') {
+        $order->update_meta_data('_culqi_charge_id', $response_body['id']);
+        $order->save();
+        $order->payment_complete($response_body['id']);
+        $order->add_order_note(sprintf(__('Pago Yape exitoso con Culqi (ID: %s)', 'culqi'), $response_body['id']));
+        WC()->cart->empty_cart();
 
             return array(
                 'result'   => 'success',
@@ -230,6 +238,7 @@ class WC_Gateway_Culqi_Yape extends WC_Payment_Gateway
         if (isset($response_body['merchant_message'])) {
             $error_message .= ' (' . $response_body['merchant_message'] . ')';
         }
+        $order->update_status('failed', __('Pago Yape rechazado: ', 'culqi') . $error_message);
         wc_add_notice($error_message, 'error');
         return;
     }
@@ -248,5 +257,78 @@ class WC_Gateway_Culqi_Yape extends WC_Payment_Gateway
                 <img class="wc-culqi-yape-icon" src="<?php echo esc_url( $this->yape_logo ); ?>" alt="Yape" />
             </div>
 		<?php
+    }
+
+    /**
+     * Procesar reembolso directamente desde el panel de WooCommerce hacia Culqi API.
+     */
+    public function process_refund($order_id, $amount = null, $reason = '')
+    {
+        $order = wc_get_order($order_id);
+        $charge_id = $order->get_transaction_id();
+
+        if (empty($charge_id)) {
+            return new WP_Error('error', __('No se encontró el ID de transacción de Culqi (charge_id) en este pedido.', 'culqi'));
+        }
+
+        if (empty($this->secret_key)) {
+            return new WP_Error('error', __('Falta la llave secreta de Culqi en la configuración.', 'culqi'));
+        }
+
+        // Razón por defecto para Culqi API
+        $culqi_reasons = array('duplicado', 'fraudulento', 'solicitud_comprador');
+        $api_reason = 'solicitud_comprador';
+        
+        if (!empty($reason)) {
+            $reason_clean = strtolower(trim($reason));
+            if (in_array($reason_clean, $culqi_reasons, true)) {
+                $api_reason = $reason_clean;
+            } elseif (strpos($reason_clean, 'duplicad') !== false) {
+                $api_reason = 'duplicado';
+            } elseif (strpos($reason_clean, 'fraud') !== false) {
+                $api_reason = 'fraudulento';
+            }
+        }
+
+        $api_url = 'https://api.culqi.com/v2/refunds';
+        $body = array(
+            'amount'    => round($amount * 100),
+            'charge_id' => $charge_id,
+            'reason'    => $api_reason,
+            'metadata'  => array(
+                'motivo_wc' => sanitize_text_field($reason),
+                'order_id'  => (string) $order_id
+            )
+        );
+
+        $headers = array(
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $this->secret_key,
+        );
+
+        $response = wp_remote_post($api_url, array(
+            'method'  => 'POST',
+            'body'    => wp_json_encode($body),
+            'timeout' => 45,
+            'headers' => $headers,
+        ));
+
+        if (is_wp_error($response)) {
+            return new WP_Error('error', __('Error de conexión con Culqi al intentar procesar el reembolso con Yape.', 'culqi'));
+        }
+
+        $response_body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (isset($response_body['object']) && $response_body['object'] === 'refund') {
+            $order->add_order_note(sprintf(__('Reembolso de Yape en Culqi procesado con éxito (ID: %s, Monto: %s, Motivo: %s)', 'culqi'), $response_body['id'], wc_price($amount), $response_body['reason']));
+            return true;
+        }
+
+        $error_message = isset($response_body['user_message']) ? $response_body['user_message'] : __('El reembolso de Yape fue rechazado por Culqi.', 'culqi');
+        if (isset($response_body['merchant_message'])) {
+            $error_message .= ' (' . $response_body['merchant_message'] . ')';
+        }
+
+        return new WP_Error('error', $error_message);
     }
 }

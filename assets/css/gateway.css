@@ -245,3 +245,161 @@
     display: block;
     margin-top: 5px;
 }
+
+/* ----------------------------------------------------------
+   7. AVISO DE ORDEN FALLIDA EN PAGAR-PEDIDO
+   ---------------------------------------------------------- */
+#culqi-gateway .culqi-failed-order-notice,
+.culqi-failed-order-notice {
+    background: #fff3f3;
+    border-left: 4px solid #e2401c;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    color: #b71c1c;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ----------------------------------------------------------
+   8. RESUMEN DE CLIENTE EN ORDER-PAY
+   ---------------------------------------------------------- */
+.culqi-orderpay {
+    border: 1px solid #e5e0e8;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    overflow: hidden;
+    font-size: 14px;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(107, 45, 123, 0.06);
+}
+
+/* Header */
+.culqi-orderpay__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #6b2d7b 0%, #8b4d9b 100%);
+    padding: 14px 20px;
+    color: #fff;
+}
+
+.culqi-orderpay__badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+}
+
+.culqi-orderpay__badge svg {
+    opacity: 0.85;
+}
+
+.culqi-orderpay__badge strong {
+    font-size: 16px;
+}
+
+.culqi-orderpay__meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.culqi-orderpay__total {
+    font-weight: 700;
+    font-size: 16px;
+    opacity: 1;
+}
+
+/* Body / Cards */
+.culqi-orderpay__body {
+    display: flex;
+    padding: 0;
+}
+
+.culqi-orderpay__card {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
+    border-right: 1px solid #f0ecf2;
+}
+
+.culqi-orderpay__card:last-child {
+    border-right: none;
+}
+
+.culqi-orderpay__card-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #f5f0f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b2d7b;
+    margin-top: 2px;
+}
+
+.culqi-orderpay__card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.culqi-orderpay__card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #999;
+    font-weight: 600;
+}
+
+.culqi-orderpay__card-content strong {
+    font-size: 14px;
+    color: #222;
+    font-weight: 600;
+}
+
+.culqi-orderpay__detail {
+    display: block;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.culqi-orderpay__addr {
+    margin-top: 3px;
+    color: #888;
+    font-size: 12.5px;
+}
+
+.culqi-orderpay__total span.woocommerce-Price-amount.amount {
+    color: #fff !important;
+}
+
+@media (max-width: 600px) {
+    .culqi-orderpay__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .culqi-orderpay__body {
+        flex-direction: column;
+    }
+
+    .culqi-orderpay__card {
+        border-right: none;
+        border-bottom: 1px solid #f0ecf2;
+    }
+
+    .culqi-orderpay__card:last-child {
+        border-bottom: none;
+    }
+}

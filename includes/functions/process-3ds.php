@@ -43,6 +43,9 @@ function culqi_v4_process_3ds_charge() {
             "first_name" => $order->get_billing_first_name(),
             "last_name" => $order->get_billing_last_name(),
             "phone_number" => $order->get_billing_phone()
+        ),
+        "metadata" => array(
+            "order_id" => (string) $order_id
         )
     );
 
@@ -64,6 +67,8 @@ function culqi_v4_process_3ds_charge() {
     $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
     if (isset($response_body['object']) && $response_body['object'] === 'charge') {
+        $order->update_meta_data('_culqi_charge_id', $response_body['id']);
+        $order->save();
         $order->payment_complete($response_body['id']);
         $order->add_order_note(sprintf(__('Pago exitoso con Culqi 3DS (ID: %s)', 'culqi'), $response_body['id']));
         WC()->cart->empty_cart();
@@ -80,5 +85,8 @@ function culqi_v4_process_3ds_charge() {
 
     $order->update_status('failed', 'Error 3DS: ' . $error_message);
     
+    wc_add_notice(__('⚠️ Hubo un error al procesar tu pago: ', 'culqi') . $error_message . ' ' . __('Por favor, verifica tus datos e intenta pagar tu pedido nuevamente con otra tarjeta.', 'culqi'), 'error');
+    
     wp_send_json_error(array('message' => $error_message));
 }
+

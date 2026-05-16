@@ -54,6 +54,27 @@ Ese menú contiene tarjetas de prueba listas para usar:
 
 Al seleccionar una, los datos (Número, Fecha, CVV y un correo de validación `review@culqi.com`) se autocompletarán instantáneamente.
 
+## Certificación PCI DSS y Paso a Producción 🔒
+
+Al utilizar la pasarela en **Modo Producción (`pk_live_...`)** mediante integración Server-to-Server nativa (API REST `/v2/tokens`), los estándares de seguridad de Visa y Mastercard requieren que el comercio cuente con autorización para el manejo directo de datos de tarjeta.
+
+Por defecto, Culqi bloquea las peticiones backend a `/v2/tokens` en producción devolviendo el código HTTP 400. Para desbloquear este endpoint:
+1. El representante legal de la empresa debe contactar a **riesgos@culqi.com** o soporte de Culqi indicando que su integración es vía Backend/API Server-to-Server.
+2. Culqi solicitará completar el cuestionario de autoevaluación **PCI SAQ-D** (Self-Assessment Questionnaire D).
+3. Una vez completado y firmado declarando el uso de servidores seguros con HTTPS y la no retención de números de tarjeta en base de datos, Culqi habilitará las llaves de producción para tokenización directa.
+
+## Configuración de Webhooks 🔗
+
+Para mantener una sincronización instantánea y en tiempo real entre Culqi y WooCommerce ante pagos exitosos o devoluciones:
+1. En tu panel de Culqi, dirígete a **Eventos > Webhooks > + Crear Webhook**.
+2. Registra los dos eventos obligatorios:
+   - `charge.creation.succeeded` (Cargo exitoso con tarjeta o Yape)
+   - `refund.creation.succeeded` (Devolución procesada con éxito)
+3. En el campo URL introduce el endpoint nativo de la pasarela:
+   `https://tudominio.com/wc-api/culqi_webhook`
+4. En **Activar Autenticación**, define un Usuario y Contraseña seguros. 
+5. Pega ese mismo Usuario y Contraseña en los ajustes del plugin en WooCommerce (**Usuario de Autenticación** y **Contraseña de Autenticación**).
+
 ## Autor y Soporte 👨‍💻
 
 - **Autor:** [soyprogramador.pe](https://soyprogramador.pe)
